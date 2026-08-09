@@ -1,24 +1,11 @@
-# Tanety-SFI: Mapping Soil Fertility Across Madagascar's Upland Farming Systems
+# Tanety-SFI: Mapping Soil Fertility Across Madagascar
 
 Digital soil mapping of a multi-depth Soil Fertility Index (SFI) for the tanety uplands of Madagascar, built on a stacked ensemble of Random Forest and XGBoost, tuned through nested cross-validation, interpreted with SHAP, and predicted wall-to-wall on GPU.
 
-## Why this project exists
-
-Tanety, the hilly upland terrain that dominates much of the Malagasy landscape outside the rice-growing lowlands, supports a large share of the country's smallholder agriculture. Soil fertility on these slopes is highly variable: decades of erosion, shifting land use, and limited access to soil testing mean that farmers and land managers rarely have more than a rough sense of where their soils are still productive and where they are depleted. Conventional soil surveys are too sparse and too slow to fill that gap at any useful resolution.
-
-This project treats soil fertility as a spatial prediction problem. A network of field-sampled soil fertility measurements, collected across five depth increments from the surface to 90 cm, is paired with a stack of remote sensing and terrain covariates and used to train machine learning models that predict fertility continuously across the landscape. The result is not a single number for a single point, but a full raster surface: a fertility map for every depth interval, together with the model's own account of which environmental factors are driving the pattern.
 
 ## What is being predicted
 
-The response variable is a Soil Fertility Index (SFI), modeled separately at five depth layers:
-
-| Layer | Depth interval |
-|---|---|
-| ISF_a | 0-10 cm |
-| ISF_b | 10-20 cm |
-| ISF_c | 20-30 cm |
-| ISF_d | 30-60 cm |
-| ISF_e | 60-90 cm |
+The response variable is a Soil Fertility Index (SFI), modeled separately at five depth layers: 0-10, 10-20, 20-30, 30-60, 60-90.
 
 Modeling each depth as its own response, rather than one model applied at multiple depths, lets the covariate relationships and hyperparameters adapt to how each layer actually behaves: surface fertility is shaped more strongly by recent land use and organic matter turnover, while deeper layers reflect longer-term parent material and drainage effects.
 
