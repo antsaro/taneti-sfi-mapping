@@ -1,2 +1,151 @@
-# tanety-sfi
-Digital soil mapping of a multi-depth Soil Fertility Index across Madagascar's tanety uplands using GPU-accelerated Random Forest, XGBoost, and stacked ensemble learning, tuned via nested cross-validation and interpreted with SHAP.
+# Tanety-SFI: Mapping Soil Fertility Across Madagascar's Upland Farming Systems
+
+Digital soil mapping of a multi-depth Soil Fertility Index (SFI) for the tanety uplands of Madagascar, built on a stacked ensemble of Random Forest and XGBoost, tuned through nested cross-validation, interpreted with SHAP, and predicted wall-to-wall on GPU.
+
+## Why this project exists
+
+Tanety, the hilly upland terrain that dominates much of the Malagasy landscape outside the rice-growing lowlands, supports a large share of the country's smallholder agriculture. Soil fertility on these slopes is highly variable: decades of erosion, shifting land use, and limited access to soil testing mean that farmers and land managers rarely have more than a rough sense of where their soils are still productive and where they are depleted. Conventional soil surveys are too sparse and too slow to fill that gap at any useful resolution.
+
+This project treats soil fertility as a spatial prediction problem. A network of field-sampled soil fertility measurements, collected across five depth increments from the surface to 90 cm, is paired with a stack of remote sensing and terrain covariates and used to train machine learning models that predict fertility continuously across the landscape. The result is not a single number for a single point, but a full raster surface: a fertility map for every depth interval, together with the model's own account of which environmental factors are driving the pattern.
+
+## What is being predicted
+
+The response variable is a Soil Fertility Index (SFI), modeled separately at five depth layers:
+
+| Layer | Depth interval |
+|---|---|
+| ISF_a | 0-10 cm |
+| ISF_b | 10-20 cm |
+| ISF_c | 20-30 cm |
+| ISF_d | 30-60 cm |
+| ISF_e | 60-90 cm |
+
+Modeling each depth as its own response, rather than one model applied at multiple depths, lets the covariate relationships and hyperparameters adapt to how each layer actually behaves: surface fertility is shaped more strongly by recent land use and organic matter turnover, while deeper layers reflect longer-term parent material and drainage effects.
+
+## Covariate stack
+
+Every raster covariate is exported at 30 m resolution and cropped to a common analysis boundary before modeling. The stack spans four broad groups:
+
+**Terrain**
+Elevation (ALOS World 3D-30m), slope derived from that same elevation surface, and the Topographic Wetness Index computed from HydroSHEDS flow accumulation.
+
+**Vegetation and land cover**
+Canopy height, tree cover fraction, land use/land cover classification, and spectral vegetation indices (NDVI, NDWI, NIRI) derived from satellite imagery.
+
+**Climate**
+Mean annual temperature and mean annual precipitation, bias-corrected climate surfaces standing in for the long-term climatic setting of each pixel.
+
+**Soil and productivity context**
+A categorical soil type layer and Net Primary Productivity (NPP) as a proxy for standing biomass production.
+
+Categorical covariates (land cover class, soil type) are kept as integer class codes throughout the pipeline and are never resampled with interpolation methods that would blend one class into another.
+
+## Modeling approach
+
+### Random Forest
+
+Random Forest builds an ensemble of B regression trees, each trained on a bootstrap resample of the training data with a random subset of covariates considered at every split. The final prediction is the average across all trees:
+
+```math
+\hat{y}_{RF}(x) = \frac{1}{B} \sum_{b=1}^{B} T_b(x)
+```
+
+Each tree T_b is grown by recursively partitioning the covariate space to minimize within-node variance of the response, which is what makes the model well suited to picking up non-linear, threshold-like relationships between terrain or climate variables and soil fertility without any need to specify a functional form in advance.
+
+### XGBoost
+
+XGBoost is also a tree ensemble, but the trees are added sequentially, each one trained to correct the residual error of the ensemble built so far. At boosting round t, the prediction is updated as:
+
+```math
+\hat{y}_i^{(t)} = \hat{y}_i^{(t-1)} + f_t(x_i)
+```
+
+The tree f_t added at each round is chosen to minimize a regularized objective:
+
+```math
+\mathcal{L}^{(t)} = \sum_{i=1}^{n} l\big(y_i, \hat{y}_i^{(t-1)} + f_t(x_i)\big) + \Omega(f_t), \qquad \Omega(f) = \gamma T + \frac{1}{2}\lambda \sum_{j=1}^{T} w_j^2
+```
+
+where l is the loss function (squared error here), T is the number of leaves in the tree, w_j are the leaf weights, and γ and λ penalize tree complexity to control overfitting. In practice the objective is optimized using a second-order Taylor expansion around the current prediction, which is what allows XGBoost to fit deep, expressive trees quickly even on large covariate stacks.
+
+### Stacked ensemble
+
+Rather than picking one algorithm, the two base learners are combined through stacking: a second-stage meta-learner learns how much weight to give each model's prediction. The meta-learner is a linear regression restricted to non-negative coefficients, fit on out-of-fold predictions from the base models so that it never sees a prediction generated by a model that was trained on that same observation:
+
+```math
+\hat{y}_{ensemble}(x) = w_{RF}\, \hat{y}_{RF}(x) + w_{XGB}\, \hat{y}_{XGB}(x) + b, \qquad w_{RF}, w_{XGB} \ge 0
+```
+
+Constraining the weights to be non-negative keeps the ensemble a genuine blend of the two base models' generalization ability rather than letting the meta-learner extrapolate on a noisy fold. In every case tested here the ensemble matched or improved on the better of the two base learners, which is the expected behavior of stacking when the base models make partly independent errors.
+
+### Hyperparameter tuning and nested cross-validation
+
+Every model's hyperparameters are tuned with Optuna using a Tree-structured Parzen Estimator sampler, searching each model's parameter space (tree depth, learning rate, regularization strength, number of trees, and related settings) to minimize cross-validated RMSE.
+
+To get an honest estimate of how well the models generalize, tuning and evaluation are separated using nested cross-validation: an outer loop splits the data into folds held out entirely for testing, and within each outer training fold an inner loop is used to search for hyperparameters and, for the ensemble, to generate the out-of-fold predictions that train the meta-learner. No test observation is ever involved, directly or indirectly, in choosing the model that predicts it.
+
+### Interpretability: SHAP
+
+Feature importance and directionality are assessed using SHAP (SHapley Additive exPlanations), which attributes each prediction to its covariates using a game-theoretic solution originally developed for fairly dividing payoffs among cooperating players. For a feature i, its Shapley value is:
+
+```math
+\phi_i = \sum_{S \subseteq F \setminus \{i\}} \frac{|S|!\,(|F|-|S|-1)!}{|F|!} \Big[ f(S \cup \{i\}) - f(S) \Big]
+```
+
+where F is the full set of covariates and the sum runs over every possible subset S that excludes feature i, weighting the marginal contribution of adding that feature by how many orderings of the other features it would appear after. Every prediction decomposes exactly into a baseline plus the sum of these contributions:
+
+```math
+f(x) = \phi_0 + \sum_{i=1}^{|F|} \phi_i
+```
+
+For the tree-based models this is computed exactly and efficiently using TreeExplainer. Because the ensemble is a non-negative linear combination of the two base models, its SHAP values do not need a separate, slower explainer: they follow directly from the additivity of Shapley values as the same linear combination of the base models' SHAP values, weighted by the meta-learner's fitted coefficients.
+
+### Evaluation metrics
+
+Model performance is reported using five complementary metrics, computed on out-of-fold predictions from the outer cross-validation loop:
+
+```math
+RMSE = \sqrt{\frac{1}{n}\sum_{i=1}^{n}(y_i - \hat{y}_i)^2}
+\qquad
+MAE = \frac{1}{n}\sum_{i=1}^{n}|y_i - \hat{y}_i|
+```
+
+```math
+R^2 = 1 - \frac{\sum_{i=1}^{n}(y_i - \hat{y}_i)^2}{\sum_{i=1}^{n}(y_i - \bar{y})^2}
+\qquad
+RPIQ = \frac{IQR(y)}{RMSE}
+```
+
+```math
+CCC = \frac{2\,s_{xy}}{s_x^2 + s_y^2 + (\bar{x}-\bar{y})^2}
+```
+
+RPIQ, the ratio of the interquartile range of the observed values to RMSE, is included because R² alone can be misleading on skewed soil datasets; a higher RPIQ indicates the model's error is small relative to the natural spread of the data, which is a more robust way to compare model quality across depth layers with different variance. CCC, the concordance correlation coefficient, additionally penalizes systematic bias between observed and predicted values, not just their correlation.
+
+### GPU acceleration
+
+Training and prediction are accelerated end to end on GPU: Random Forest through cuML, XGBoost through its native GPU training path, and wall-to-wall raster inference through cuML's Forest Inference Library (FIL), which loads a fitted forest once and evaluates it against millions of pixels in batches. With two GPUs available, independent model-fitting jobs (each response and outer fold combination) are dispatched round-robin across both devices, and prediction over the study area is carried out tile by tile to keep memory use bounded regardless of raster size.
+
+## Spatial prediction
+
+Once final models are fit on the full dataset, each is applied across the entire study area to produce continuous raster surfaces, one for each of the five depth layers and each of the three models (Random Forest, XGBoost, and the stacked ensemble). Prediction is tiled rather than done in a single pass, both to keep GPU memory use bounded on large rasters and to make it possible to track progress and recover from a failure on an individual tile without losing the whole run.
+
+## Repository structure
+
+```
+├── covariates/           GEE export scripts for the terrain, vegetation, climate
+│                          and spectral covariate stack
+├── data_prep/             covariate extraction and alignment to field data
+├── modeling/               nested CV, hyperparameter tuning, ensemble stacking
+├── interpretation/         SHAP importance and diagnostic scatter plots
+├── prediction/              GPU tiled raster inference (RF, XGBoost, ensemble)
+└── results/                 trained models, importance tables, prediction rasters
+```
+
+## Requirements
+
+The modeling pipeline is built around a standard Python geospatial and machine learning stack: `rasterio`, `geopandas`, `scikit-learn`, `xgboost`, `optuna`, `shap`, and, for GPU acceleration, `cupy` and `cuml`. Covariate export runs in Google Earth Engine's JavaScript code editor. Development and GPU training were carried out on Kaggle notebooks with dual T4 GPUs.
+
+## Citation and acknowledgments
+
+If this pipeline or its outputs are useful for your own work, please get in touch about how to cite it appropriately. Field data underlying the soil fertility index were collected in collaboration with local research partners; specifics on the field campaign are available on request.
