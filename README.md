@@ -124,8 +124,8 @@ Predicted SFI across the five depth layers (rows a-o, top to bottom) and the thr
 │   ├── common.py                    shared metrics, imputation, Optuna RF tuning
 │   ├── nested_cv_rf.py               nested CV, outer-fold evaluation
 │   ├── final_models_importance.py    final RF fit + %IncMSE permutation importance
-│   ├── regression_kriging.py         RF + kriged-residual correction, nested CV
-│   └── rfe_feature_selection.py      RFECV feature selection inside nested CV
+│   ├── regression_kriging.py         RF + kriged-residual correction, nested CV (optional)
+│   └── rfe_feature_selection.py      RFECV feature selection inside nested CV (optional)
 ├── prediction/
 │   └── gpu_raster_prediction.py      GPU tiled raster inference (cuML FIL)
 ├── interpretation/
