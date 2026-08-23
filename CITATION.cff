@@ -1,0 +1,71 @@
+cff-version: 1.2.0
+message: "If you use this software or its outputs, please cite the associated manuscript."
+type: software
+title: "Tanety-SFI: Mapping Soil Fertility Across Madagascar's Open Ecosystems"
+abstract: >
+  Digital soil mapping pipeline for a five-depth Soil Fertility Index (SFI)
+  across three bioclimatic regions of Madagascar (Central Highlands,
+  Northwest, Southeast). Random Forest models are tuned per depth layer
+  through nested cross-validation with Optuna, cross-checked against a
+  regression-kriging correction on the residuals, interpreted with
+  permutation importance, and predicted wall-to-wall on GPU via cuML's
+  Forest Inference Library.
+authors:
+  - family-names: Rafidimanantsoa
+    given-names: Sarobidy
+    affiliation: "Laboratoire des Radioisotopes, University of Antananarivo"
+  - family-names: Ramifehiarivo
+    given-names: Nandrianina
+    affiliation: "Laboratoire des Radioisotopes, University of Antananarivo"
+  - family-names: Ratovoarimanana
+    given-names: Lovafitia
+    affiliation: "Laboratoire des Radioisotopes, University of Antananarivo"
+  - family-names: Andriamananjara
+    given-names: Andry
+    affiliation: "Laboratoire des Radioisotopes, University of Antananarivo"
+  - family-names: Bouillon
+    given-names: Steven
+    affiliation: "Department of Earth & Environmental Sciences, KU Leuven"
+  - family-names: Devenish
+    given-names: Adam
+    affiliation: "Royal Botanic Gardens Edinburgh / Royal Botanic Gardens Kew"
+  - family-names: Randrianantenaina
+    given-names: "Antsa Sarobidy"
+    affiliation: "Laboratoire des Radioisotopes, University of Antananarivo"
+  - family-names: Razakamanarivo
+    given-names: Herintsitohaina
+    affiliation: "Laboratoire des Radioisotopes, University of Antananarivo"
+preferred-citation:
+  type: article
+  title: "Soil fertility variability under tropical open grassland ecosystems of Madagascar"
+  authors:
+    - family-names: Rafidimanantsoa
+      given-names: Sarobidy
+    - family-names: Ramifehiarivo
+      given-names: Nandrianina
+    - family-names: Ratovoarimanana
+      given-names: Lovafitia
+    - family-names: Andriamananjara
+      given-names: Andry
+    - family-names: Bouillon
+      given-names: Steven
+    - family-names: Devenish
+      given-names: Adam
+    - family-names: Randrianantenaina
+      given-names: "Antsa Sarobidy"
+    - family-names: Razakamanarivo
+      given-names: Herintsitohaina
+  journal: "Geoderma Regional"
+  status: submitted
+keywords:
+  - soil fertility index
+  - digital soil mapping
+  - Madagascar
+  - Random Forest
+  - nested cross-validation
+  - regression kriging
+  - open ecosystems
+  - reforestation
+license: MIT
+version: 1.0.0
+date-released: "2026-08-23"

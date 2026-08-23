@@ -1,0 +1,25 @@
+# CPU dependencies, covering everything except GPU raster prediction
+# (prediction/gpu_raster_prediction.py needs cuml + cupy, see
+# environment-gpu.yml for that).
+
+numpy>=1.24
+pandas>=2.0
+geopandas>=0.14
+scikit-learn>=1.3
+optuna>=3.4
+joblib>=1.3
+matplotlib>=3.7
+scipy>=1.10
+
+# Raster I/O and reprojection
+rasterio>=1.3
+pyproj>=3.6
+
+# Regression kriging
+pykrige>=1.7
+
+tqdm>=4.66
+
+# Notebook environment
+jupyterlab>=4.0
+ipykernel>=6.25

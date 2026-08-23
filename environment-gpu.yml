@@ -1,0 +1,36 @@
+# Conda environment for prediction/gpu_raster_prediction.py, the only
+# script in this repository that needs a GPU. It uses cuML's Forest
+# Inference Library to run the trained scikit-learn Random Forest models
+# against the full covariate rasters.
+#
+# RAPIDS (cuML, cuPy) is distributed through its own conda channel and is
+# not reliably pip-installable, so this needs a conda environment rather
+# than a plain virtualenv.
+#
+# Create it with:
+#   conda env create -f environment-gpu.yml
+#   conda activate tanety-sfi-gpu
+#
+# Original runs were on a Kaggle notebook with a single NVIDIA T4 GPU
+# (16 GB VRAM), driver supporting CUDA 12.x. Check current RAPIDS/CUDA
+# compatibility at https://rapids.ai/start.html before installing, since
+# supported version combinations change over time.
+
+name: tanety-sfi-gpu
+channels:
+  - rapidsai
+  - conda-forge
+  - nvidia
+dependencies:
+  - python=3.11
+  - cuml=24.10
+  - cupy
+  - cudatoolkit=12.2
+  - scikit-learn>=1.3
+  - numpy>=1.24
+  - pandas>=2.0
+  - rasterio>=1.3
+  - joblib>=1.3
+  - tqdm>=4.66
+  - jupyterlab>=4.0
+  - ipykernel>=6.25
