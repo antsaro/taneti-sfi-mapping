@@ -1,6 +1,6 @@
 # Tanety-SFI: Mapping Soil Fertility Across Madagascar's Open Ecosystems
 
-Digital soil mapping of a five-depth Soil Fertility Index (SFI) across three bioclimatic regions of Madagascar (Central Highlands, Northwest, Southeast), built on Random Forest tuned through nested cross-validation, cross-checked against a regression-kriging correction on the residuals, and predicted wall-to-wall on GPU.
+Digital soil mapping of a five-depth Soil Fertility Index (SFI) across three bioclimatic regions of Madagascar (Central Highlands, Northwest, Southeast), built on Random Forest tuned through nested cross-validation, cross-checked against a regression-kriging correction on the residuals (optional), and predicted wall-to-wall on GPU.
 
 This repository accompanies the manuscript *"Soil fertility variability under tropical open grassland ecosystems of Madagascar"* (Rafidimanantsoa, Ramifehiarivo et al., submitted to Geoderma Regional). See [Citation](#citation) below.
 
