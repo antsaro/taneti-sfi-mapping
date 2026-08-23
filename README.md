@@ -98,7 +98,7 @@ RPIQ, the ratio of the interquartile range of the observed values to RMSE, is in
 
 ### Interpretability: permutation importance
 
-Covariate importance is assessed with permutation importance rather than SHAP: each covariate is shuffled in turn, the drop in model performance is measured, and the increase in MSE relative to the unpermuted baseline is reported as %IncMSE, the same statistic reported by R's classic `randomForest` package. This is computed on the final model fit to the full dataset, with 20 repeats per covariate to get a stable estimate and its spread.
+Covariate importance is assessed with permutation importance : each covariate is shuffled in turn, the drop in model performance is measured, and the increase in MSE relative to the unpermuted baseline is reported as %IncMSE, the same statistic reported by R's classic `randomForest` package. This is computed on the final model fit to the full dataset, with 20 repeats per covariate to get a stable estimate and its spread.
 
 ### GPU acceleration
 
